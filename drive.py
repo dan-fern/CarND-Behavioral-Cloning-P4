@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import shutil
 
+import cv2 as cv2
 import numpy as np
 import socketio
 import eventlet
@@ -18,22 +19,30 @@ from keras import __version__ as keras_version
 
 sio = socketio.Server()
 app = Flask(__name__)
-model = None
+model_s = None
 prev_image_array = None
 
 
+def preprocess_image( img ):
+    image = img[60:140,:,:]
+    image = cv2.GaussianBlur( image, ( 3, 3 ), 0 )
+    image = cv2.resize( image, ( 200, 66 ), interpolation=cv2.INTER_AREA )
+    image = cv2.cvtColor( image, cv2.COLOR_RGB2YUV )
+    return image
+
+
 class SimplePIController:
-    def __init__(self, Kp, Ki):
+    def __init__( self, Kp, Ki ):
         self.Kp = Kp
         self.Ki = Ki
-        self.set_point = 0.
+        self.set_point = 9.
         self.error = 0.
         self.integral = 0.
 
-    def set_desired(self, desired):
+    def set_desired( self, desired ):
         self.set_point = desired
 
-    def update(self, measurement):
+    def update( self, measurement ):
         # proportional error
         self.error = self.set_point - measurement
 
@@ -43,9 +52,7 @@ class SimplePIController:
         return self.Kp * self.error + self.Ki * self.integral
 
 
-controller = SimplePIController(0.1, 0.002)
-set_speed = 9
-controller.set_desired(set_speed)
+controller = SimplePIController( 0.1, 0.002 )
 
 
 @sio.on('telemetry')
@@ -60,13 +67,13 @@ def telemetry(sid, data):
         # The current image from the center camera of the car
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
-        image_array = np.asarray(image)
-        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        image_array = preprocess_image( np.asarray(image) )
+        steering_angle = float( model_s.predict( image_array[None, :, :, :], batch_size=1 ) )
 
-        throttle = controller.update(float(speed))
+        throttle = controller.update( float( speed ) )
 
-        print(steering_angle, throttle)
-        send_control(steering_angle, throttle)
+        print( steering_angle, throttle, controller.set_point )
+        send_control( steering_angle, throttle )
 
         # save frame
         if args.image_folder != '':
@@ -97,7 +104,7 @@ def send_control(steering_angle, throttle):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Remote Driving')
     parser.add_argument(
-        'model',
+        'model_s',
         type=str,
         help='Path to model h5 file. Model should be on the same path.'
     )
@@ -111,7 +118,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # check that model Keras version is same as local Keras version
-    f = h5py.File(args.model, mode='r')
+    f = h5py.File(args.model_s, mode='r')
     model_version = f.attrs.get('keras_version')
     keras_version = str(keras_version).encode('utf8')
 
@@ -119,7 +126,7 @@ if __name__ == '__main__':
         print('You are using Keras version ', keras_version,
               ', but the model was built using ', model_version)
 
-    model = load_model(args.model)
+    model_s = load_model(args.model_s)
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))

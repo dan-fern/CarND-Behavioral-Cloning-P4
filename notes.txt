@@ -1,0 +1,90 @@
+Center Image [0], Left Image [1], Right Image [2], Steering [3], Throttle [4], Brake [5], Speed [6]
+
+# LOG:
+# same but with λ decreased to 0.0005
+#
+### Steering
+# Epoch 5/5
+# 41874/41874 [==============================] - 32s - loss: 0.0274 - val_loss: 0.2027
+### Speed
+# Epoch 9/9
+# 41874/41874 [==============================] - 32s - loss: 4.6978 - val_loss: 114.1224
+
+# same but with λ decreased to 0.0011
+# car stays centered, but
+### Steering
+# Epoch 4/4
+# 41871/41871 [==============================] - 33s - loss: 0.0311 - val_loss: 0.2317
+### Speed
+# Epoch 9/9
+# 41871/41871 [==============================] - 43s - loss: 5.2606 - val_loss: 107.8474
+
+# back to cutting mirrored steering angles < 0.011, only speed-trained, λ increased to 0.001
+# terrible, huge step backwards
+### Steering
+# Epoch 5/5
+# 41871/41871 [==============================] - 33s - loss: 0.0459 - val_loss: 0.2849
+### Speed
+# Epoch 9/9
+# 41871/41871 [==============================] - 43s - loss: 8.4778 - val_loss: 105.2397
+
+# removing all images with steering angles < 0.01, with only speed-trained
+# car never stayed straight, turned very smoothly, but eventually did some off-roading
+### Steering
+# Epoch 4/4
+# 12536/12536 [==============================] - 13s - loss: 0.0292 - val_loss: 0.0416
+### Speed
+# Epoch 8/8
+# 12536/12536 [==============================] - 13s - loss: 4.6776 - val_loss: 53.2004
+
+# removing mirrored images with steering angles < 0.01, with only speed-trained
+# car drove smoother, late turns though indicative of loss of training data
+### Steering
+# Epoch 4/4
+# 41874/41874 [==============================] - 33s - loss: 0.0951 - val_loss: 0.2556
+### Speed
+# Epoch 8/8
+# 41874/41874 [==============================] - 37s - loss: 5.7194 - val_loss: 112.1338
+
+# for all layers: replaced ReLU with ELU, added L2 regularization (λ = 0.001), collecting throttle, speed
+# car completes full laps, at a competitive speed.  speed-trained model performed best.
+### Steering
+# Epoch 5/5
+# 44520/44520 [==============================] - 39s - loss: 0.0294 - val_loss: 0.2049
+### Throttle
+# Epoch 5/5
+# 44520/44520 [==============================] - 39s - loss: 0.2016 - val_loss: 0.1741
+### Speed
+# Epoch 11/11
+# 44520/44520 [==============================] - 39s - loss: 4.3709 - val_loss: 104.4184
+
+# first attempt with Nvidia architecture, using ReLU activation with no dropout or pooling
+# car travels completely around the track
+# Epoch 3/3
+# 44520/44520 [==============================] - 34s - loss: 0.0088 - val_loss: 0.1889
+
+# fixed below, BGR 2 YUV when training, RGB 2 YUV when driving
+# car stays centered until curve after bridge
+# Epoch 3/3
+# 44520/44520 [==============================] - 68s - loss: 0.0049 - val_loss: 0.2245
+
+# with preprocessing refactor, there should be no improvement
+# car fails spectacularly, seems to track race lines from outside of the track
+# Epoch 3/3
+# 44520/44520 [==============================] - 68s - loss: 0.0056 - val_loss: 0.2097
+
+# with cropping, epochs reduced to 3, training time reduced, crashes at new curve past bridge
+# Epoch 3/3
+# 44520/44520 [==============================] - 73s - loss: 0.0192 - val_loss: 0.2005
+
+# with left, right images, crash at same curve, better centering prior
+# Epoch 7/7
+# 44520/44520 [==============================] - 130s - loss: 0.0030 - val_loss: 0.2274
+
+# with flipped images and flipped measurements, crash at same curve
+# Epoch 7/7
+# 14840/14840 [==============================] - 42s - loss: 0.0035 - val_loss: 0.2200
+
+# 2 2D Layers, pre-flipped images, crash after first curve
+# Epoch 7/7
+# 7420/7420 [==============================] - 15s - loss: 0.0035 - val_loss: 0.2287
